@@ -1,5 +1,7 @@
 
 /*
+  Copyright 2020 Jiri Srba
+
   ESP32 a Siton 210 - prenos dat pres protokol EasyTransfer po RS485
 
   InfluxDB UDP protocol:
@@ -31,8 +33,8 @@
 #include <WiFiUDP.h>
 
 // ESP32 UART2 Tx Rx
-#define TXenableRS485 4 //RE + DE RS485
-#define LEDpin 2       //
+#define TXenableRS485 4   // RE + DE RS485
+#define LEDpin 2          //
 
 // WiFi
 const char ssid[] = "ufo8";
@@ -51,16 +53,14 @@ const byte SITON_ID = 12;
 // global influxdb field
 static String field;
 
-const uint32_t read_data_interval = 60 * 1000; // interval pro sber dat
-static uint32_t lastMillis = 0;              // will store last time LED was updated
+const uint32_t read_data_interval = 60 * 1000;  // interval pro sber dat
+static uint32_t lastMillis = 0;  // will store last time LED was updated
 
 String getSitonMeasurement(byte prijem[40]);
 
 // add to global variable field
-static void influxAddValue(String name, float value)
-{
-  if (field.length() > 0)
-  {
+static void influxAddValue(String name, float value) {
+  if (field.length() > 0) {
     field += ',';
   }
 
@@ -70,8 +70,7 @@ static void influxAddValue(String name, float value)
 }
 
 
-String getSitonMeasurement(byte prijem[40])
-{
+String getSitonMeasurement(byte prijem[40]) {
   String line;
 
   String measurement = "siton";
@@ -86,8 +85,8 @@ String getSitonMeasurement(byte prijem[40])
   influxAddValue("vykon", word(prijem[9], prijem[8]));
   influxAddValue("teplota", word(prijem[11], prijem[10]));
 
-  // vyroba k W
-  long vyroba = prijem[23] << 24;
+  // vyroba [W]
+  uint32_t vyroba = prijem[23] << 24;
   vyroba += prijem[22] << 16;
   vyroba += prijem[21] << 8;
   vyroba += prijem[20];
@@ -100,8 +99,7 @@ String getSitonMeasurement(byte prijem[40])
 }
 
 
-String readSitonData(HardwareSerial mySerial)
-{
+String readSitonData(HardwareSerial mySerial) {
   int nodeid;
   int byteRec;
   int delka;
@@ -111,33 +109,28 @@ String readSitonData(HardwareSerial mySerial)
   // inicializace prazdne influxdb row
   String line = "";
 
-  byteRec = mySerial.read(); // Precte prvni byte
+  byteRec = mySerial.read();    // Precte prvni byte
   // Serial.printf("receive header: 0x%02x\n", byteRec);
-  if (byteRec == 0x06)
-  {
+  if (byteRec == 0x06) {
     byteRec = mySerial.read();
-    if (byteRec == 0x85)
-    {
+    if (byteRec == 0x85) {
       delka = mySerial.read();
       cs = delka;
       // Serial.printf("receive delka: %02d\n", delka);
 
-      for (byte i = 0; i < delka; i++)
-      {
+      for (byte i = 0; i < delka; i++) {
         byteRec = mySerial.read();
         prijem[i] = byteRec;
-        cs ^= byteRec; //kontrolni soucet
+        cs ^= byteRec;    // kontrolni soucet
       }
 
       byteRec = mySerial.read();
-      if (cs == byteRec)
-      {
+      if (cs == byteRec) {
         // kontrola na ID 12
-        nodeid = int(prijem[0]);
+        nodeid = prijem[0];
         // Serial.printf("receive nodeid: %02d\n", nodeid);
         // data OK
-        if (nodeid == SITON_ID)
-        {
+        if (nodeid == SITON_ID) {
           // get Siton measurement
           line = getSitonMeasurement(prijem);
           Serial.print("line: ");
@@ -151,8 +144,7 @@ String readSitonData(HardwareSerial mySerial)
 
 
 // send UDP the packet to influx
-void influxSendData(String line)
-{
+void influxSendData(String line) {
   // Serial.println("Sending UDP packet...");
   Serial.print("send udp: ");
   Serial.println(line);
@@ -163,9 +155,7 @@ void influxSendData(String line)
 }
 
 
-void setup()
-{
-
+void setup() {
   pinMode(TXenableRS485, OUTPUT);
   pinMode(LEDpin, OUTPUT);
 
@@ -176,8 +166,7 @@ void setup()
   digitalWrite(TXenableRS485, LOW);
 
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.println("Connecting to WiFi..");
   }
@@ -185,24 +174,20 @@ void setup()
 }
 
 
-void loop()
-{
-  if (millis() - lastMillis > read_data_interval)
-  {
+void loop() {
+  if (millis() - lastMillis > read_data_interval) {
     lastMillis = millis();
     digitalWrite(LEDpin, HIGH);
 
     // receiving data
-    if (Serial2.available() > 0x25)
-    {
+    if (Serial2.available() > 0x25) {
       // read siton data into line
       // delay(10);
       String line = readSitonData(Serial2);
       // Serial.println(line);
       Serial2.flush();
       // send UDP data
-      if (line.length() > 0)
-      {
+      if (line.length() > 0) {
         influxSendData(line);
       }
     }

@@ -23,9 +23,12 @@ jobs:
     # dynamically by the build matrix.
     - name: Install platform
       run: |
-        arduino-cli core update-index
-        arduino-cli core install arduino:avr
+        printf "board_manager:\n  additional_urls:\n    - https://dl.espressif.com/dl/package_esp32_index.json\n" > cli-config.yml
+        arduino-cli core update-index --config-file cli-config.yml
+        arduino-cli core install esp32:esp32 --config-file cli-config.yml
+        arduino-cli lib install "Adafruit BME280 Library"
+
     # Finally, we compile the sketch, using the FQBN that was set
     # in the build matrix.
     - name: Compile Sketch
-      run: arduino-cli compile --fqbn arduino:avr:uno --verbose siton-wifi.cpp
+      run: arduino-cli compile --fqbn esp32:esp32:esp32 --verbose siton-wifi.cpp

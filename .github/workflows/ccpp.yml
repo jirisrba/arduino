@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: arduino
 
 on:
   push:
@@ -13,11 +13,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+
+    # We use the `arduino/setup-arduino-cli` action to install and
+    # configure the Arduino CLI on the system.
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v1.0.0
+
+    # We then install the platform, which one will be determined
+    # dynamically by the build matrix.
+    - name: Install platform
+      run: |
+        arduino-cli core update-index
+        arduino-cli core install arduino:avr
+    # Finally, we compile the sketch, using the FQBN that was set
+    # in the build matrix.
+    - name: Compile Sketch
+      run: arduino-cli compile --fqbn arduino:avr:uno --verbose siton-wifi.cpp

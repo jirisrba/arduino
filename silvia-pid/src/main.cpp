@@ -13,6 +13,8 @@
 
   https://www.arduinotech.cz/inpage/wifi-teplomer-385/
 
+  https://github.com/olikraus/u8g2/wiki/fntlistall#20-pixel-height
+
  */
 
 #include <Arduino.h>

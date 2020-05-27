@@ -48,8 +48,8 @@ static int voltageReadIndex = 0;         // the index of the current reading
 static int total = 0;                    // the running total
 
 // WiFi
-const char ssid[] = "ufo8";
-const char password[] = "abcd1234";
+const char* ssid = "ufo8";
+const char* password = "abcd1234";
 
 // InfluxDB
 // the IP address of your host

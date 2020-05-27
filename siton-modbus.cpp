@@ -1,23 +1,10 @@
 
 /*
-  emnoHub3_rs485_Modbus_to_PI.ino
   EmonHUB ridi komunikaci protokolem Modbus RTU po RS485
   a posila pozadavky na data jednotlivym Sitonum
-  pres pin TX posila data ve formatu JeeLib paketu do Raspberry Pi s EmonCMS
-  kompilace Arduino 1.8.8
-  2.3.2019
-  Tomas Nevrela; tnweb.tode.cz
 
-  format v EmonHub config Nodes
-  [[12]]
-  nodename = Siton 210
-  firmware = ""
-  hardware = ""
-  [[[rx]]]
-  names = Napeti, Proud, Vykon, Teplota, Vyroba
-  datacodes = h,h,h,h,L
-  scales = 1,1,1,1,1
-  units = V,A,W,C,Wh
+  Komunikační rychlost 9600 Bd; 8 data bitů; 1 stop bit; bez parity.
+  Vyčítat hodnoty lze pomocí funkce 03 (Read Holding Register). Při odeslání dat blikne na Arduinu ledka L.
 
   Struktura dat:
   hlavička – 06h, 85h
@@ -34,6 +21,29 @@
   data9 – výroba – (unsigned long) hodnota ve Wh (1270564 = 1270,564 kWh)
   data10 – data12 – rezerva (unsigned long)
   kontr. součet – provedení operace XOR s jednotlivými byte dat a byte počtu dat
+
+  TODO:
+  - pridat zapis na SD card
+    https://randomnerdtutorials.com/esp32-data-logging-temperature-to-microsd-card/
+  - pridat sqlite inicializace a INSERT
+  - zkusit deep sleep time
+
+struct {
+  int id,
+  unsigned long timestamp,
+  int napeti;
+  int proud;
+  int vykon;
+  int teplota;
+  unsigned long vyroba;
+} measured_data;
+
+struct point my_point1;
+
+struct point my_point2 = {2, 5, 3.7};
+
+my_point2.x = 4;
+
 */
 
 #include <Arduino.h>
@@ -49,12 +59,7 @@ unsigned int datacnt;
 uint16_t au16data[20]; //pole ulozeni dat modbus
 uint8_t u8state;
 byte u8query; //!< pointer to message query
-/*
-    Modbus deklarace
-    u8id : node id = 0 master, = 1..247 slave
-    u8serno : serial port (0 Serial, 4 SoftwareSerial)
-    u8txenpin : 0 RS-232 a USB-FTDI nebo pin  > 1 pro RS485
-*/
+
 Modbus master(0, Serial, TXenableRS485); // master, Serial, RS485 enabler port
 
 modbus_t telegram; //
